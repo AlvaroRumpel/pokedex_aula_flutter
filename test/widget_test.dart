@@ -111,6 +111,65 @@ void main() {
     expect(y3, greaterThan(y1));
   });
 
+  testWidgets('card pinta com a cor do primeiro tipo', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PokemonListPage(
+          service: FakePokeApiService(
+            onFetchPokemons: () async => [
+              const Pokemon(id: 4, name: 'Charmander'),
+            ],
+            onFetchDetails: (_) async => const PokemonDetails(
+              types: ['fire', 'flying'],
+              height: 6,
+              weight: 85,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final card = tester.widget<Card>(find.byType(Card));
+    expect(card.color, typeColor('fire'));
+  });
+
+  testWidgets('busca, favorito, grade e cor juntos', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PokemonListPage(
+          service: FakePokeApiService(
+            onFetchPokemons: () async => [
+              const Pokemon(id: 1, name: 'Bulbasaur'),
+              const Pokemon(id: 4, name: 'Charmander'),
+            ],
+            onFetchDetails: (id) async => PokemonDetails(
+              types: [id == 1 ? 'grass' : 'fire'],
+              height: 0,
+              weight: 0,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(GridView), findsOneWidget);
+
+    // Filtra, favorita o Charmander e limpa a busca.
+    await tester.enterText(find.byType(TextField), 'char');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.favorite_border));
+    await tester.enterText(find.byType(TextField), '');
+    await tester.pumpAndSettle();
+
+    // Os dois voltam, o favorito continua marcado e cada um tem sua cor.
+    expect(find.text('Bulbasaur'), findsOneWidget);
+    expect(find.byIcon(Icons.favorite), findsOneWidget);
+    final colors = tester
+        .widgetList<Card>(find.byType(Card))
+        .map((c) => c.color);
+    expect(colors, [typeColor('grass'), typeColor('fire')]);
+  });
+
   testWidgets('mostra erro', (tester) async {
     await tester.pumpWidget(
       app(() => Future<List<Pokemon>>.error(Exception('sem internet'))),

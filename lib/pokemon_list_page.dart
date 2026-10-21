@@ -5,12 +5,13 @@ import 'package:pokedex/pokemon.dart';
 import 'package:pokedex/pokemon_detail_page.dart';
 
 // Card de um Pokémon na grade: imagem em cima, nome e número embaixo,
-// e um coração no canto.
+// e um coração no canto. A cor do card é a do primeiro tipo.
 class PokemonCard extends StatelessWidget {
   final Pokemon pokemon;
   final VoidCallback? onTap; // o que fazer ao tocar no card
   final bool isFavorite; // coração cheio ou vazio
   final VoidCallback? onFavoriteTap; // o que fazer ao tocar no coração
+  final Color? color; // cor do primeiro tipo; sem cor, o card fica branco
 
   const PokemonCard({
     super.key,
@@ -18,12 +19,16 @@ class PokemonCard extends StatelessWidget {
     this.onTap,
     this.isFavorite = false,
     this.onFavoriteTap,
+    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Card colorido pede texto branco; card branco, texto escuro.
+    final textColor = color == null ? null : Colors.white;
+    final grayOrWhite = color == null ? const Color(0xFF5F5F5F) : Colors.white;
     return Card(
-      color: Colors.white,
+      color: color ?? Colors.white,
       elevation: 1,
       margin: EdgeInsets.zero, // o espaço entre os cards vem da grade
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -62,17 +67,15 @@ class PokemonCard extends StatelessWidget {
                     // Nome comprido não quebra a linha: termina em "...".
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w600,
+                      color: textColor,
                     ),
                   ),
                   Text(
                     pokemon.number,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF5F5F5F),
-                    ),
+                    style: TextStyle(fontSize: 13, color: grayOrWhite),
                   ),
                 ],
               ),
@@ -86,9 +89,10 @@ class PokemonCard extends StatelessWidget {
                 tooltip: isFavorite ? 'Desfavoritar' : 'Favoritar',
                 icon: Icon(
                   isFavorite ? Icons.favorite : Icons.favorite_border,
-                  color: isFavorite
+                  // Coração vermelho sumiria num card vermelho: lá fica branco.
+                  color: isFavorite && color == null
                       ? const Color(0xFFCC0000)
-                      : const Color(0xFF5F5F5F),
+                      : grayOrWhite,
                 ),
               ),
             ),
@@ -127,6 +131,13 @@ class _PokemonListPageState extends State<PokemonListPage> {
       if (!_favorites.remove(pokemon.id)) _favorites.add(pokemon.id);
     });
   }
+
+  // A lista não traz os tipos: cada card pede o detalhe do seu Pokémon.
+  // O mapa guarda os pedidos por id, para não buscar de novo ao rolar.
+  final _details = <int, Future<PokemonDetails>>{};
+
+  Future<PokemonDetails> _detailsOf(Pokemon pokemon) => _details.putIfAbsent(
+      pokemon.id, () => widget.service.fetchPokemonDetails(pokemon.id));
 
   @override
   Widget build(BuildContext context) {
@@ -194,21 +205,36 @@ class _PokemonListPageState extends State<PokemonListPage> {
                               mainAxisSpacing: 8,
                             ),
                             itemCount: pokemons.length,
-                            itemBuilder: (context, i) => PokemonCard(
-                              pokemon: pokemons[i],
-                              isFavorite: _favorites.contains(pokemons[i].id),
-                              onFavoriteTap: () => _toggleFavorite(pokemons[i]),
-                              // Navigator.push empilha uma nova tela.
-                              // Passamos o Pokémon tocado para a tela de detalhe.
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => PokemonDetailPage(
-                                    pokemon: pokemons[i],
-                                    service: widget.service,
+                            // Um FutureBuilder por card: cada um espera os
+                            // seus tipos para escolher a cor.
+                            itemBuilder: (context, i) =>
+                                FutureBuilder<PokemonDetails>(
+                              future: _detailsOf(pokemons[i]),
+                              builder: (context, details) {
+                                // Sem os tipos ainda (ou com erro): branco.
+                                final types = details.data?.types ?? [];
+                                return PokemonCard(
+                                  pokemon: pokemons[i],
+                                  color: types.isEmpty
+                                      ? null
+                                      : typeColor(types.first),
+                                  isFavorite:
+                                      _favorites.contains(pokemons[i].id),
+                                  onFavoriteTap: () =>
+                                      _toggleFavorite(pokemons[i]),
+                                  // Navigator.push empilha uma nova tela.
+                                  // Passamos o Pokémon tocado para o detalhe.
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => PokemonDetailPage(
+                                        pokemon: pokemons[i],
+                                        service: widget.service,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ),
+                                );
+                              },
                             ),
                           ),
                   ),
