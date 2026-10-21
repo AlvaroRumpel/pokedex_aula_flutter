@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 
 import 'package:pokedex/pokemon.dart';
@@ -18,6 +20,12 @@ class PokeApiService {
   Future<List<Pokemon>> fetchPokemons() async {
     final body = await _get('/pokemon?limit=151');
     return pokemonsFromJson(body);
+  }
+
+  // Busca tipos, altura e peso de um Pokémon pelo id.
+  Future<PokemonDetails> fetchPokemonDetails(int id) async {
+    final body = await _get('/pokemon/$id');
+    return PokemonDetails.fromJson(jsonDecode(body) as Map<String, dynamic>);
   }
 
   // GET usado por todos os métodos: a checagem do status fica num lugar só.

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:pokedex/pokeapi_service.dart';
 import 'package:pokedex/pokemon.dart';
+import 'package:pokedex/pokemon_detail_page.dart';
 
 // Card de um Pokémon: imagem, nome, número e uma setinha.
 class PokemonCard extends StatelessWidget {
@@ -86,6 +87,7 @@ class PokemonListPage extends StatefulWidget {
 
 class _PokemonListPageState extends State<PokemonListPage> {
   // Future = um valor que ainda vai chegar (a resposta da internet).
+  // late: só é calculado no primeiro uso, quando já existe acesso a widget.
   late final Future<List<Pokemon>> _future = widget.service.fetchPokemons();
 
   @override
@@ -120,7 +122,20 @@ class _PokemonListPageState extends State<PokemonListPage> {
               return ListView.builder(
                 padding: const EdgeInsets.all(12),
                 itemCount: pokemons.length,
-                itemBuilder: (context, i) => PokemonCard(pokemon: pokemons[i]),
+                itemBuilder: (context, i) => PokemonCard(
+                  pokemon: pokemons[i],
+                  // Navigator.push empilha uma nova tela sobre a atual.
+                  // Passamos o Pokémon tocado para a tela de detalhe.
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PokemonDetailPage(
+                        pokemon: pokemons[i],
+                        service: widget.service,
+                      ),
+                    ),
+                  ),
+                ),
               );
             },
           ),
