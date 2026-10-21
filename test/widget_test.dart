@@ -74,6 +74,22 @@ void main() {
     expect(find.text('Nenhum Pokémon encontrado'), findsOneWidget);
   });
 
+  testWidgets('coração marca e desmarca favorito', (tester) async {
+    await tester.pumpWidget(
+      app(() async => [const Pokemon(id: 25, name: 'Pikachu')]),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.favorite_border), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.favorite_border));
+    await tester.pump();
+    expect(find.byIcon(Icons.favorite), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.favorite));
+    await tester.pump();
+    expect(find.byIcon(Icons.favorite_border), findsOneWidget);
+  });
+
   testWidgets('mostra erro', (tester) async {
     await tester.pumpWidget(
       app(() => Future<List<Pokemon>>.error(Exception('sem internet'))),

@@ -4,12 +4,20 @@ import 'package:pokedex/pokeapi_service.dart';
 import 'package:pokedex/pokemon.dart';
 import 'package:pokedex/pokemon_detail_page.dart';
 
-// Card de um Pokémon: imagem, nome, número e uma setinha.
+// Card de um Pokémon: imagem, nome, número, coração e uma setinha.
 class PokemonCard extends StatelessWidget {
   final Pokemon pokemon;
   final VoidCallback? onTap; // o que fazer ao tocar no card
+  final bool isFavorite; // coração cheio ou vazio
+  final VoidCallback? onFavoriteTap; // o que fazer ao tocar no coração
 
-  const PokemonCard({super.key, required this.pokemon, this.onTap});
+  const PokemonCard({
+    super.key,
+    required this.pokemon,
+    this.onTap,
+    this.isFavorite = false,
+    this.onFavoriteTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -65,6 +73,17 @@ class PokemonCard extends StatelessWidget {
                   ],
                 ),
               ),
+              // O card só mostra o coração; quem guarda os favoritos é a tela.
+              IconButton(
+                onPressed: onFavoriteTap,
+                tooltip: isFavorite ? 'Desfavoritar' : 'Favoritar',
+                icon: Icon(
+                  isFavorite ? Icons.favorite : Icons.favorite_border,
+                  color: isFavorite
+                      ? const Color(0xFFCC0000)
+                      : const Color(0xFF5F5F5F),
+                ),
+              ),
               const Icon(Icons.chevron_right, color: Color(0xFF5F5F5F)),
             ],
           ),
@@ -92,6 +111,16 @@ class _PokemonListPageState extends State<PokemonListPage> {
 
   // Texto digitado na busca. Começa vazio: mostra todos.
   String _query = '';
+
+  // Ids dos favoritos. Ficam só na memória: fechou o app, perdeu.
+  final _favorites = <int>{};
+
+  // Marca ou desmarca e redesenha a tela.
+  void _toggleFavorite(Pokemon pokemon) {
+    setState(() {
+      if (!_favorites.remove(pokemon.id)) _favorites.add(pokemon.id);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -153,6 +182,8 @@ class _PokemonListPageState extends State<PokemonListPage> {
                             itemCount: pokemons.length,
                             itemBuilder: (context, i) => PokemonCard(
                               pokemon: pokemons[i],
+                              isFavorite: _favorites.contains(pokemons[i].id),
+                              onFavoriteTap: () => _toggleFavorite(pokemons[i]),
                               // Navigator.push empilha uma nova tela.
                               // Passamos o Pokémon tocado para a tela de detalhe.
                               onTap: () => Navigator.push(
