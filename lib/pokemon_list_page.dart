@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:pokedex/pokeapi_service.dart';
 import 'package:pokedex/pokemon.dart';
 
 // Card de um Pokémon: imagem, nome, número e uma setinha.
@@ -72,9 +73,20 @@ class PokemonCard extends StatelessWidget {
   }
 }
 
-// Tela da lista. Por enquanto mostra um Pokémon fixo.
-class PokemonListPage extends StatelessWidget {
-  const PokemonListPage({super.key});
+// Tela da lista: busca os Pokémon na internet e mostra o resultado.
+class PokemonListPage extends StatefulWidget {
+  // O serviço vem de fora: nos testes dá para trocar por um falso.
+  const PokemonListPage({super.key, required this.service});
+
+  final PokeApiService service;
+
+  @override
+  State<PokemonListPage> createState() => _PokemonListPageState();
+}
+
+class _PokemonListPageState extends State<PokemonListPage> {
+  // Future = um valor que ainda vai chegar (a resposta da internet).
+  late final Future<List<Pokemon>> _future = widget.service.fetchPokemons();
 
   @override
   Widget build(BuildContext context) {
@@ -93,14 +105,24 @@ class PokemonListPage extends StatelessWidget {
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600),
-          child: const Padding(
-            padding: EdgeInsets.all(12),
-            // Column: o card fica no topo, só com a altura do conteúdo.
-            child: Column(
-              children: [
-                PokemonCard(pokemon: Pokemon(id: 1, name: 'Bulbasaur')),
-              ],
-            ),
+          // FutureBuilder redesenha conforme o estado do Future:
+          // carregando, erro ou com dados.
+          child: FutureBuilder<List<Pokemon>>(
+            future: _future,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return const Center(child: Text('Não foi possível carregar'));
+              }
+              final pokemons = snapshot.data!;
+              return ListView.builder(
+                padding: const EdgeInsets.all(12),
+                itemCount: pokemons.length,
+                itemBuilder: (context, i) => PokemonCard(pokemon: pokemons[i]),
+              );
+            },
           ),
         ),
       ),

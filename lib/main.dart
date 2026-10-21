@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
 
+import 'package:pokedex/pokeapi_service.dart';
 import 'package:pokedex/pokemon_list_page.dart';
 
-void main() => runApp(const PokedexApp());
+void main() {
+  // Um serviço só para o app inteiro. As telas recebem ele pelo construtor.
+  final service = PokeApiService();
+  runApp(PokedexApp(service: service));
+}
 
 // Tudo no Flutter é widget: o app, a tela, o texto e até o espaçamento.
 // Por isso o app inteiro começa com uma classe "widget" como esta.
 class PokedexApp extends StatelessWidget {
-  const PokedexApp({super.key});
+  const PokedexApp({super.key, required this.service});
+
+  final PokeApiService service;
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +31,7 @@ class PokedexApp extends StatelessWidget {
         ),
       ),
       // A primeira tela do app.
-      home: const PokemonListPage(),
+      home: PokemonListPage(service: service),
     );
   }
 }
