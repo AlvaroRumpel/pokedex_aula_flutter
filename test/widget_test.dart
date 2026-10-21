@@ -53,6 +53,27 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('busca filtra pelo nome', (tester) async {
+    await tester.pumpWidget(
+      app(
+        () async => [
+          const Pokemon(id: 1, name: 'Bulbasaur'),
+          const Pokemon(id: 4, name: 'Charmander'),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'char');
+    await tester.pump();
+    expect(find.text('Charmander'), findsOneWidget);
+    expect(find.text('Bulbasaur'), findsNothing);
+
+    await tester.enterText(find.byType(TextField), 'xyz');
+    await tester.pump();
+    expect(find.text('Nenhum Pokémon encontrado'), findsOneWidget);
+  });
+
   testWidgets('mostra erro', (tester) async {
     await tester.pumpWidget(
       app(() => Future<List<Pokemon>>.error(Exception('sem internet'))),

@@ -90,6 +90,9 @@ class _PokemonListPageState extends State<PokemonListPage> {
   // late: só é calculado no primeiro uso, quando já existe acesso a widget.
   late final Future<List<Pokemon>> _future = widget.service.fetchPokemons();
 
+  // Texto digitado na busca. Começa vazio: mostra todos.
+  String _query = '';
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -118,24 +121,53 @@ class _PokemonListPageState extends State<PokemonListPage> {
               if (snapshot.hasError) {
                 return const Center(child: Text('Não foi possível carregar'));
               }
-              final pokemons = snapshot.data!;
-              return ListView.builder(
-                padding: const EdgeInsets.all(12),
-                itemCount: pokemons.length,
-                itemBuilder: (context, i) => PokemonCard(
-                  pokemon: pokemons[i],
-                  // Navigator.push empilha uma nova tela sobre a atual.
-                  // Passamos o Pokémon tocado para a tela de detalhe.
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => PokemonDetailPage(
-                        pokemon: pokemons[i],
-                        service: widget.service,
+              // Filtra pelo nome, sem diferenciar maiúscula de minúscula.
+              final pokemons = snapshot.data!
+                  .where(
+                    (p) => p.name.toLowerCase().contains(_query.toLowerCase()),
+                  )
+                  .toList();
+              // Column: campo de busca em cima, lista embaixo.
+              return Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                    child: TextField(
+                      decoration: const InputDecoration(
+                        hintText: 'Buscar pelo nome',
+                        prefixIcon: Icon(Icons.search),
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(),
                       ),
+                      // A cada letra digitada, guarda o texto e redesenha.
+                      onChanged: (text) => setState(() => _query = text),
                     ),
                   ),
-                ),
+                  // Expanded: a lista ocupa o resto da altura da tela.
+                  Expanded(
+                    child: pokemons.isEmpty
+                        ? const Center(child: Text('Nenhum Pokémon encontrado'))
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(12),
+                            itemCount: pokemons.length,
+                            itemBuilder: (context, i) => PokemonCard(
+                              pokemon: pokemons[i],
+                              // Navigator.push empilha uma nova tela.
+                              // Passamos o Pokémon tocado para a tela de detalhe.
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => PokemonDetailPage(
+                                    pokemon: pokemons[i],
+                                    service: widget.service,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                  ),
+                ],
               );
             },
           ),
