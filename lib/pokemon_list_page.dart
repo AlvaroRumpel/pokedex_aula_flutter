@@ -8,13 +8,22 @@ import 'package:pokedex/pokemon_detail_page.dart';
 class PokemonCard extends StatelessWidget {
   final Pokemon pokemon;
   final VoidCallback? onTap; // o que fazer ao tocar no card
+  final Color? color; // cor do primeiro tipo; sem cor, o card fica branco
 
-  const PokemonCard({super.key, required this.pokemon, this.onTap});
+  const PokemonCard({
+    super.key,
+    required this.pokemon,
+    this.onTap,
+    this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
+    // Card colorido pede texto branco; card branco, texto escuro.
+    final textColor = color == null ? null : Colors.white;
+    final grayOrWhite = color == null ? const Color(0xFF5F5F5F) : Colors.white;
     return Card(
-      color: Colors.white,
+      color: color ?? Colors.white,
       elevation: 1,
       margin: const EdgeInsets.symmetric(vertical: 4),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -50,22 +59,20 @@ class PokemonCard extends StatelessWidget {
                   children: [
                     Text(
                       pokemon.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
+                        color: textColor,
                       ),
                     ),
                     Text(
                       pokemon.number,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF5F5F5F),
-                      ),
+                      style: TextStyle(fontSize: 13, color: grayOrWhite),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: Color(0xFF5F5F5F)),
+              Icon(Icons.chevron_right, color: grayOrWhite),
             ],
           ),
         ),
@@ -89,6 +96,13 @@ class _PokemonListPageState extends State<PokemonListPage> {
   // Future = um valor que ainda vai chegar (a resposta da internet).
   // late: só é calculado no primeiro uso, quando já existe acesso a widget.
   late final Future<List<Pokemon>> _future = widget.service.fetchPokemons();
+
+  // A lista não traz os tipos: cada card pede o detalhe do seu Pokémon.
+  // O mapa guarda os pedidos por id, para não buscar de novo ao rolar.
+  final _details = <int, Future<PokemonDetails>>{};
+
+  Future<PokemonDetails> _detailsOf(Pokemon pokemon) => _details.putIfAbsent(
+      pokemon.id, () => widget.service.fetchPokemonDetails(pokemon.id));
 
   @override
   Widget build(BuildContext context) {
@@ -122,19 +136,28 @@ class _PokemonListPageState extends State<PokemonListPage> {
               return ListView.builder(
                 padding: const EdgeInsets.all(12),
                 itemCount: pokemons.length,
-                itemBuilder: (context, i) => PokemonCard(
-                  pokemon: pokemons[i],
-                  // Navigator.push empilha uma nova tela sobre a atual.
-                  // Passamos o Pokémon tocado para a tela de detalhe.
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => PokemonDetailPage(
-                        pokemon: pokemons[i],
-                        service: widget.service,
+                // Um FutureBuilder por card: cada um espera os seus tipos.
+                itemBuilder: (context, i) => FutureBuilder<PokemonDetails>(
+                  future: _detailsOf(pokemons[i]),
+                  builder: (context, details) {
+                    // Enquanto os tipos não chegam (ou se der erro), fica branco.
+                    final types = details.data?.types ?? [];
+                    return PokemonCard(
+                      pokemon: pokemons[i],
+                      color: types.isEmpty ? null : typeColor(types.first),
+                      // Navigator.push empilha uma nova tela sobre a atual.
+                      // Passamos o Pokémon tocado para a tela de detalhe.
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PokemonDetailPage(
+                            pokemon: pokemons[i],
+                            service: widget.service,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
               );
             },

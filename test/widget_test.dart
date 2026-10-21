@@ -53,6 +53,28 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('card pinta com a cor do primeiro tipo', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PokemonListPage(
+          service: FakePokeApiService(
+            onFetchPokemons: () async => [
+              const Pokemon(id: 4, name: 'Charmander'),
+            ],
+            onFetchDetails: (_) async => const PokemonDetails(
+              types: ['fire', 'flying'],
+              height: 6,
+              weight: 85,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final card = tester.widget<Card>(find.byType(Card));
+    expect(card.color, typeColor('fire'));
+  });
+
   testWidgets('mostra erro', (tester) async {
     await tester.pumpWidget(
       app(() => Future<List<Pokemon>>.error(Exception('sem internet'))),
