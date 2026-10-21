@@ -4,7 +4,7 @@ import 'package:pokedex/pokeapi_service.dart';
 import 'package:pokedex/pokemon.dart';
 import 'package:pokedex/pokemon_detail_page.dart';
 
-// Card de um Pokémon: imagem, nome, número e uma setinha.
+// Card de um Pokémon na grade: imagem em cima, nome e número embaixo.
 class PokemonCard extends StatelessWidget {
   final Pokemon pokemon;
   final VoidCallback? onTap; // o que fazer ao tocar no card
@@ -16,19 +16,20 @@ class PokemonCard extends StatelessWidget {
     return Card(
       color: Colors.white,
       elevation: 1,
-      margin: const EdgeInsets.symmetric(vertical: 4),
+      margin: EdgeInsets.zero, // o espaço entre os cards vem da grade
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       clipBehavior: Clip.antiAlias, // o efeito do toque respeita as bordas
       child: InkWell(
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(12),
-          // Row coloca os filhos lado a lado.
-          child: Row(
+          // Column coloca os filhos um embaixo do outro.
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 56,
-                height: 56,
+                width: 72,
+                height: 72,
                 decoration: const BoxDecoration(
                   color: Color(0xFFEDEDED),
                   shape: BoxShape.circle,
@@ -42,30 +43,24 @@ class PokemonCard extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 16),
-              // Expanded ocupa o espaço que sobra, empurrando a seta p/ a direita.
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      pokemon.name,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      pokemon.number,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF5F5F5F),
-                      ),
-                    ),
-                  ],
+              const SizedBox(height: 8),
+              Text(
+                pokemon.name,
+                // Nome comprido não quebra a linha: termina em "...".
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              const Icon(Icons.chevron_right, color: Color(0xFF5F5F5F)),
+              Text(
+                pokemon.number,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF5F5F5F),
+                ),
+              ),
             ],
           ),
         ),
@@ -119,8 +114,15 @@ class _PokemonListPageState extends State<PokemonListPage> {
                 return const Center(child: Text('Não foi possível carregar'));
               }
               final pokemons = snapshot.data!;
-              return ListView.builder(
+              // GridView: como o ListView, mas com colunas.
+              return GridView.builder(
                 padding: const EdgeInsets.all(12),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2, // 2 colunas
+                  mainAxisExtent: 150, // altura de cada card
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                ),
                 itemCount: pokemons.length,
                 itemBuilder: (context, i) => PokemonCard(
                   pokemon: pokemons[i],

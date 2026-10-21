@@ -53,6 +53,27 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('grade mostra 2 por linha', (tester) async {
+    await tester.pumpWidget(
+      app(
+        () async => [
+          const Pokemon(id: 1, name: 'Bulbasaur'),
+          const Pokemon(id: 4, name: 'Charmander'),
+          const Pokemon(id: 7, name: 'Squirtle'),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(GridView), findsOneWidget);
+
+    // Os dois primeiros ficam na mesma linha; o terceiro desce.
+    final y1 = tester.getTopLeft(find.text('Bulbasaur')).dy;
+    final y2 = tester.getTopLeft(find.text('Charmander')).dy;
+    final y3 = tester.getTopLeft(find.text('Squirtle')).dy;
+    expect(y2, y1);
+    expect(y3, greaterThan(y1));
+  });
+
   testWidgets('mostra erro', (tester) async {
     await tester.pumpWidget(
       app(() => Future<List<Pokemon>>.error(Exception('sem internet'))),
